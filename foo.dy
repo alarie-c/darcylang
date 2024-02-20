@@ -1,2 +1,9 @@
-let x = 5
-out(x)
+set 
+let()
+[ ; : . ] ; 
+
+while
+{
+    set ; 
+    let ;
+}
