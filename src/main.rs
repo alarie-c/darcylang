@@ -20,9 +20,10 @@ fn main() {
         let tokens = lexer.scan(buffer);
 
         if args.len() == 3 && &args[2] == "--tokens" {
-            for c in tokens {
-                let msg = c.display();
-                println!("{msg}");
+            for _ in &tokens {
+                // let msg = c.display();
+                // println!("{msg}");
+                println!("{:#?}", tokens);
             }
         }
 
