@@ -2,28 +2,52 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process;
+//use error::error::{DarcyError, ErrorKind};
 use lexer::lexer::Lexer;
+use lexer::tokens::{Token, TokenKind};
+
+
 
 mod lexer;
+mod error;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     // Determine file and CLI arguments
     if args.len() >= 2 {
+        // Get file and make buffer
         let mut file = File::open(&args[1]).expect("Error reading file!");
         let mut buffer = String::new();
 
+        // Read file as string into buffer
         file.read_to_string(&mut buffer).expect("Error");
 
-        let lexer = Lexer::new();
-        let tokens = lexer.scan(buffer);
+        // Create lexer and iterator
+        let iterator = buffer.chars().peekable();
+        let mut lexer = Lexer::new(iterator);
 
-        if args.len() == 3 && &args[2] == "--tokens" {
-            for _ in &tokens {
-                // let msg = c.display();
-                // println!("{msg}");
-                println!("{:#?}", tokens);
+        // Scan iterator for tokens
+        let tokens = lexer.scan();
+
+        // Clean tokens
+        let mut tokenized: Vec<&Token> = Vec::new();
+        for token in tokens {
+            if token.kind != TokenKind::Empty {
+                tokenized.push(token);
+            }
+        }
+
+        // Match CLI args for flags
+        if args.len() == 3 {
+            match args[2].as_str() {
+                "--debug" => {
+                    println!("debugging...");
+                    for token in tokenized {
+                        println!("{:#?}", token);
+                    }
+                },
+                _ => {},
             }
         }
 
