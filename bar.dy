@@ -1,0 +1,61 @@
+// Variables
+
+let x = 10
+let str = "Hello"
+
+out x
+out str
+
+set x = 5
+const pi = 3.14159
+
+out x
+out pi
+
+// Selection
+
+if x == 5 || str == "Hello" 
+{
+    out x
+    out str
+}
+else if x < 5
+{
+    out x - 1
+}
+else
+{
+    out "None"
+}
+
+// Control Flow
+
+for i in 0 -> 20
+{
+    out i
+}
+
+let idx = 0
+while idx < 5
+{
+    out idx
+    idx ++
+}
+
+match str
+{
+    case "Hello"
+    {
+        out "str is Hello"
+    }
+    case "Hi"
+    {
+        out "str is Hi"
+    }
+    case _
+    {
+        out "str is neither Hi or Hello"
+    }
+}
+
+// 
