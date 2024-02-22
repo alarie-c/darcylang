@@ -52,6 +52,7 @@ pub mod tokens {
         Elif,
         For,
         Func,
+        Out,
 
         // Other
         End, Empty, Newline,
@@ -86,7 +87,7 @@ pub mod tokens {
 }
 
 pub mod lexer {
-    use std::iter::Peekable;
+    use std::{error::Error, iter::Peekable};
     //use crate::error::error::{DarcyError, ErrorKind};
     use super::tokens::{Token, TokenKind};
 
@@ -133,6 +134,38 @@ pub mod lexer {
                     // Return keyword token
                     return Some(Token::new(TokenKind::Set, "set", self.line));
                 },
+                "const" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::Const, "const", self.line));
+                },
+                "while" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::While, "while", self.line));
+                },
+                "if" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::If, "if", self.line));
+                },
+                "else" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::Else, "else", self.line));
+                },
+                "elif" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::Elif, "elif", self.line));
+                },
+                "for" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::For, "for", self.line));
+                },
+                "func" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::For, "for", self.line));
+                },
+                "out" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::For, "for", self.line));
+                },
 
                 // If word is not a keyword
                 _ => {
@@ -168,7 +201,54 @@ pub mod lexer {
             }
         }
 
-        fn take_word(&mut self) -> Option<Token> {
+        fn take_until_char(&mut self) -> Option<()> {
+
+            'wait_for_char: loop {
+                if let Some(_) = self.advance() {
+                    if self.current == ' ' {
+                        continue 'wait_for_char;
+                    } else {
+                        todo!();
+                    }
+                }
+            }
+
+        }
+
+        fn take_word(&mut self) -> Option<String> {
+            let mut id = String::new();
+
+            'word: loop {
+                id.push(self.current);
+                if let Some(_) = self.advance() {
+                    if self.current == ' ' {
+                        if id.is_empty() || id == " " {
+                            // TODO: darcy error handling
+                            eprintln!("No identifier given for let statement error!");
+                            std::process::exit(1);
+                        } else {
+                            return Some(id);
+                        }
+                    } else if let Some(t) = self.match_symbols() {
+                        // Push symbol token
+                        self.tokens.push(t);
+
+                        // Return identifier
+                        if id.is_empty() || id == " " {
+                            // TODO: darcy error handling
+                            eprintln!("No identifier given for let statement error!");
+                            std::process::exit(1);
+                        } else {
+                            return Some(id);
+                        }
+                    }
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        fn take_word_and_match(&mut self) -> Option<Token> {
             let mut id = String::new();
             
             // Take all characters until we reach whitespace or a symbol
@@ -384,14 +464,27 @@ pub mod lexer {
                         return &self.tokens;
                     }
                 } else {
-                    // match something else
-                    if let Some(t) = self.take_word() {
-                        if t.kind != TokenKind::End {
-                            self.tokens.push(t);
-                            continue 'start;
-                        } else {
-                            self.tokens.push(t);
-                            return &self.tokens;
+                    // Match character to identifier/keyword
+
+                    if let Some(t) = self.take_word_and_match() {
+
+                        // Match returned 
+                        match t.kind {
+                            // End: stop tokenizing
+                            TokenKind::End => {
+                                self.tokens.push(t);
+                                return &self.tokens;
+                            },
+
+                            // Let: get var name as literal 
+                            TokenKind::Let => {
+                            },
+
+
+                            _ => {
+                                self.tokens.push(t);
+                                continue 'start;
+                            },
                         }
                     } else {
                         continue 'start;

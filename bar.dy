@@ -58,4 +58,10 @@ match str
     }
 }
 
-// 
+// Functions
+func area(width, height)
+{
+    return width * height
+}
+
+area(5, 10)
