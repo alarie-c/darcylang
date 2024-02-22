@@ -54,7 +54,7 @@ pub mod tokens {
         Func,
 
         // Other
-        End, Empty,
+        End, Empty, Newline,
     }
 
     #[derive(Debug)]
@@ -110,13 +110,117 @@ pub mod lexer {
             }
         }
 
-        fn advance(&mut self) -> bool {
+        fn advance(&mut self) -> Option<()> {
             if let Some(character) = self.chars.next() {
                 self.current = character;
-                return true;
+                return Some(());
             } else {
                 self.tokens.push(Token::end(self.line));
-                return false;
+                return None;
+            }
+        }
+
+        fn match_keyword(&mut self, word: &String) -> Option<Token> {
+            println!("{word}");
+            
+            match word.trim() {
+                // Match word to a keyword
+                "let" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::Let, "let", self.line));
+                },
+                "set" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::Set, "set", self.line));
+                },
+
+                // If word is not a keyword
+                _ => {
+                    return None;
+                }
+            }
+        }
+
+        fn match_id(&mut self, word: &String) -> Option<Token> {
+            todo!();
+        }
+
+        fn match_word(&mut self, word: String) -> Option<Token> {
+            // Get keyword match
+            let keyword_match = self.match_keyword(&word);
+            
+            // Determine if match found
+            match keyword_match {
+                // Return keyword if yes
+                Some(t) => {
+                    return Some(t);
+                },
+                // Otherwise search for identifier
+                None => {
+                    if let Some(t) = self.match_id(&word) {
+                        // Return ID token if found
+                        return Some(t);
+                    } else {
+                        // Otherwise return none
+                        return None;
+                    }
+                }
+            }
+        }
+
+        fn take_word(&mut self) -> Option<Token> {
+            let mut id = String::new();
+            
+            // Take all characters until we reach whitespace or a symbol
+            'word: loop {
+                id.push(self.current);
+                println!("{id}");
+                
+                if let Some(_) = self.advance() {
+                    if self.current == ' ' {
+                        let matched = self.match_word(id);
+                        match matched {
+                            // If match_word() returns a valid token
+                            Some(t) => {
+                                // Return recieved token
+                                return Some(t);
+                            },
+
+                            // If match_word() returns None
+                            None => {
+                                // TODO: add darcy error handling here!
+                                eprintln!("Unknown ID error");
+                                todo!();
+                            },
+                        }
+                    } else if let Some(t) = self.match_symbols() {
+                        let matched = self.match_word(id);
+                        match matched {
+                            // If match_word() returns a valid token
+                            Some(matched_t) => {
+                                // Push the consumed symbol token
+                                self.tokens.push(t);
+
+                                // Return recieved token
+                                return Some(matched_t);
+                            },
+
+                            // If match_word() returns None
+                            None => {
+                                // TODO: add darcy error handling here!
+                                eprintln!("Unknown ID error");
+                                todo!();
+                            },
+                        }
+                    } else {
+                        // Repeat
+                        continue 'word;
+                    }
+                } else {
+                    return Some(
+                        Token::new(TokenKind::End, "<END OF FILE>", self.line)
+                    );
+                }
             }
         }
 
@@ -125,10 +229,10 @@ pub mod lexer {
                 // Grouping Symbols
                 '(' => Some(Token::new(TokenKind::LPar, "(", self.line)),
                 ')' => Some(Token::new(TokenKind::RPar, ")", self.line)),
-                '[' => Some(Token::new(TokenKind::LBrac, "(", self.line)),
-                ']' => Some(Token::new(TokenKind::RBrac, "(", self.line)),
-                '{' => Some(Token::new(TokenKind::LCurl, "(", self.line)),
-                '}' => Some(Token::new(TokenKind::RCurl, "(", self.line)),
+                '[' => Some(Token::new(TokenKind::LBrac, "[", self.line)),
+                ']' => Some(Token::new(TokenKind::RBrac, "]", self.line)),
+                '{' => Some(Token::new(TokenKind::LCurl, "{", self.line)),
+                '}' => Some(Token::new(TokenKind::RCurl, "}", self.line)),
 
                 // Other Symbols
                 '.' => Some(Token::new(TokenKind::Dot, ".", self.line)),
@@ -140,7 +244,7 @@ pub mod lexer {
                 // Misc
                 '\n' => {
                     self.line += 1;
-                    Some(Token::new(TokenKind::Empty, " ", self.line))
+                    Some(Token::new(TokenKind::Newline, " ", self.line))
                 },
 
                 // Logical Operators
@@ -241,7 +345,7 @@ pub mod lexer {
                     }
                 },
                 _ => {
-                    Some(Token::new(TokenKind::Empty, " ", self.line))
+                    None
                 },
             }
         }
@@ -252,26 +356,46 @@ pub mod lexer {
             let scanning = true;
 
             // Advance to first character
-            if self.advance() {
-                self.current = self.chars.next().unwrap();
-            } else {
-                return &self.tokens;
-            }
+            // if let Some(_) = self.advance() {
+            //     self.current = self.chars.next().unwrap();
+            // } else {
+            //     return &self.tokens;
+            // }
 
             // Match character
             'start: while scanning {
                 println!("Current char: {}", self.current);
+
+                // Skip token if whitespace
+                if self.current == ' ' || self.current == '\t' || self.current == '\r' {
+                    if let Some(_) = self.advance() {
+                        continue 'start;
+                    } else {
+                        return &self.tokens;
+                    }
+                }
+
                 // Match character to symbols
                 if let Some(t) = self.match_symbols() {
                     self.tokens.push(t);
-                    if self.advance() {
+                    if let Some(_) = self.advance() {
                         continue 'start;
                     } else {
                         return &self.tokens;
                     }
                 } else {
                     // match something else
-                    break 'start;
+                    if let Some(t) = self.take_word() {
+                        if t.kind != TokenKind::End {
+                            self.tokens.push(t);
+                            continue 'start;
+                        } else {
+                            self.tokens.push(t);
+                            return &self.tokens;
+                        }
+                    } else {
+                        continue 'start;
+                    }
                 }
             }
             
