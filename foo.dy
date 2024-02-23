@@ -6,7 +6,7 @@ if >
 elif  == 
 {
     +
-    let <>
+    let hd = 
 }
 else
 {

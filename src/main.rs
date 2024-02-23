@@ -10,6 +10,7 @@ use lexer::tokens::{Token, TokenKind};
 
 mod lexer;
 mod error;
+mod ast;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

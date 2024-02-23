@@ -111,6 +111,10 @@ pub mod lexer {
             }
         }
 
+        fn end(&mut self) {
+            self.tokens.push(Token::end(self.line));
+        }
+
         fn advance(&mut self) -> Option<()> {
             if let Some(character) = self.chars.next() {
                 self.current = character;
@@ -208,11 +212,12 @@ pub mod lexer {
                     if self.current == ' ' {
                         continue 'wait_for_char;
                     } else {
-                        todo!();
+                        return Some(());
                     }
+                } else {
+                    return None;
                 }
             }
-
         }
 
         fn take_word(&mut self) -> Option<String> {
@@ -466,7 +471,7 @@ pub mod lexer {
                 } else {
                     // Match character to identifier/keyword
 
-                    if let Some(t) = self.take_word_and_match() {
+                    if let Some(mut t) = self.take_word_and_match() {
 
                         // Match returned 
                         match t.kind {
@@ -478,7 +483,28 @@ pub mod lexer {
 
                             // Let: get var name as literal 
                             TokenKind::Let => {
+                                
+                                // Get identifier
+                                if let Some(_) = self.take_until_char() {
+                                    if let Some(id) = self.take_word() {
+                                        t.lex = id;
+                                        self.tokens.push(t);
+                                    } else {
+                                        self.end();
+                                        return &self.tokens;
+                                    }
+                                } else {
+                                    self.end();
+                                    return &self.tokens;
+                                }
                             },
+                            
+                            // Set: get var from context
+                            TokenKind::Set => {
+                                if let Some(_) = self.take_until_char() {
+                                    todo!();
+                                }
+                            }
 
 
                             _ => {
