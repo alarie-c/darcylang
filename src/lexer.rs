@@ -51,11 +51,16 @@ pub mod tokens {
         Else,
         Elif,
         For,
-        Func,
-        Out,
+        //Func,
+        //Out,
+        End,
 
         // Other
-        End, Empty, Newline,
+        EndOfFile, 
+        Empty, 
+        Newline, 
+        StringLiteral, 
+        NumberLiteral,
     }
 
     #[derive(Debug)]
@@ -67,27 +72,27 @@ pub mod tokens {
 
     impl Token {
         // Create a new token from arguments
-        pub fn new(kind: TokenKind, lex: &str, line: usize) -> Self {
+        pub fn new(kind: TokenKind, lex: &str, line: &usize) -> Self {
             Self {
                 kind,
                 lex: lex.to_string(),
-                line,
+                line: *line,
             }
         }
 
         // Return end of file token
-        pub fn end(line: usize) -> Self {
+        pub fn end(line: &usize) -> Self {
             Self {
-                kind: TokenKind::End,
+                kind: TokenKind::EndOfFile,
                 lex: "<END OF FILE>".to_string(),
-                line,
+                line: *line,
             }
         }
     }
 }
 
 pub mod lexer {
-    use std::{error::Error, iter::Peekable};
+    use std::iter::Peekable;
     //use crate::error::error::{DarcyError, ErrorKind};
     use super::tokens::{Token, TokenKind};
 
@@ -112,7 +117,7 @@ pub mod lexer {
         }
 
         fn end(&mut self) {
-            self.tokens.push(Token::end(self.line));
+            self.tokens.push(Token::end(&&self.line));
         }
 
         fn advance(&mut self) -> Option<()> {
@@ -120,7 +125,7 @@ pub mod lexer {
                 self.current = character;
                 return Some(());
             } else {
-                self.tokens.push(Token::end(self.line));
+                self.end();
                 return None;
             }
         }
@@ -132,43 +137,47 @@ pub mod lexer {
                 // Match word to a keyword
                 "let" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::Let, "let", self.line));
+                    return Some(Token::new(TokenKind::Let, "let", &self.line));
+                },
+                "end" => {
+                    // Return keyword token
+                    return Some(Token::new(TokenKind::End, "end", &self.line));
                 },
                 "set" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::Set, "set", self.line));
+                    return Some(Token::new(TokenKind::Set, "set", &self.line));
                 },
                 "const" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::Const, "const", self.line));
+                    return Some(Token::new(TokenKind::Const, "const", &self.line));
                 },
                 "while" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::While, "while", self.line));
+                    return Some(Token::new(TokenKind::While, "while", &self.line));
                 },
                 "if" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::If, "if", self.line));
+                    return Some(Token::new(TokenKind::If, "if", &self.line));
                 },
                 "else" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::Else, "else", self.line));
+                    return Some(Token::new(TokenKind::Else, "else", &self.line));
                 },
                 "elif" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::Elif, "elif", self.line));
+                    return Some(Token::new(TokenKind::Elif, "elif", &self.line));
                 },
                 "for" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", self.line));
+                    return Some(Token::new(TokenKind::For, "for", &self.line));
                 },
                 "func" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", self.line));
+                    return Some(Token::new(TokenKind::For, "for", &self.line));
                 },
                 "out" => {
                     // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", self.line));
+                    return Some(Token::new(TokenKind::For, "for", &self.line));
                 },
 
                 // If word is not a keyword
@@ -206,7 +215,6 @@ pub mod lexer {
         }
 
         fn take_until_char(&mut self) -> Option<()> {
-
             'wait_for_char: loop {
                 if let Some(_) = self.advance() {
                     if self.current == ' ' {
@@ -221,30 +229,30 @@ pub mod lexer {
         }
 
         fn take_word(&mut self) -> Option<String> {
-            let mut id = String::new();
+            let mut buffer = String::new();
 
             'word: loop {
-                id.push(self.current);
+                buffer.push(self.current);
                 if let Some(_) = self.advance() {
                     if self.current == ' ' {
-                        if id.is_empty() || id == " " {
+                        if buffer.is_empty() || buffer == " " {
                             // TODO: darcy error handling
                             eprintln!("No identifier given for let statement error!");
                             std::process::exit(1);
                         } else {
-                            return Some(id);
+                            return Some(buffer);
                         }
                     } else if let Some(t) = self.match_symbols() {
                         // Push symbol token
                         self.tokens.push(t);
 
                         // Return identifier
-                        if id.is_empty() || id == " " {
+                        if buffer.is_empty() || buffer == " " {
                             // TODO: darcy error handling
                             eprintln!("No identifier given for let statement error!");
                             std::process::exit(1);
                         } else {
-                            return Some(id);
+                            return Some(buffer);
                         }
                     }
                 } else {
@@ -253,17 +261,115 @@ pub mod lexer {
             }
         }
 
+        // Takes number literal
+        // ADVANCING
+        fn take_number_literal(&mut self) -> Option<Token> {
+            let mut buffer = String::new();
+
+            'literal: loop {
+                /*
+                    The following allows for valid separation of numbers for readability
+                    Example: x = 100_000_000
+                */
+
+                // If '_', skip and go to next number
+                if self.current == '_' {
+                    if let Some(_) = self.advance() {
+                        continue 'literal;
+                    } else {
+                        return None;
+                    }
+                }
+
+                // Push the current to the buffer
+                buffer.push(self.current);
+
+                // Go to next character (if possible)
+                if let Some(c) = self.advance() {
+                    // If character is white space
+                    if self.current == ' ' {
+                        // Make token and return
+                        let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
+                        return Some(token);
+                    } else if let Some(t) = self.match_symbols() {
+                        // Get exception for dot
+                        if t.kind == TokenKind::Dot {
+                            // Continue loop (dot gets pushed to buffer)
+                            continue 'literal;
+                        }
+                        // Make token and return
+                        let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
+                        return Some(token);
+                    } else {
+                        // Continue loop
+                        continue 'literal;
+                    }
+                } else {
+                    return None;
+                }
+            }
+        }   
+
+        // Takes string literal
+        // PEEKING
+        fn take_string_literal(&mut self) -> Option<Token> {
+            let mut buffer = String::new();
+
+            // Advance past the quotation mark
+            match self.advance() {
+                Some(_) => {},
+                None => {
+                    return None;
+                },
+            }
+
+            'literal: loop {
+                buffer.push(self.current);
+
+                if let Some(c) = self.chars.peek() {
+                    match *c {
+                        '"' => {
+                            let token = Token::new(TokenKind::StringLiteral, &buffer, &self.line);
+                            
+                            // Advance past the last quotation
+                            match self.advance() {
+                                Some(_) => {
+                                    // Return literal token
+                                    return Some(token);
+                                },
+                                None => {
+                                    // Push the literal token
+                                    self.tokens.push(token);
+
+                                    // Signal end of source file
+                                    self.end();
+                                    return None;
+                                },
+                            }
+                        },
+                        _ => {
+                            self.advance();
+                            continue 'literal;
+                        }
+                    }
+                } else {
+                    self.end();
+                    return None;
+                }
+            }
+        }
+
         fn take_word_and_match(&mut self) -> Option<Token> {
-            let mut id = String::new();
+            let mut buffer = String::new();
             
             // Take all characters until we reach whitespace or a symbol
             'word: loop {
-                id.push(self.current);
-                println!("{id}");
+                buffer.push(self.current);
+                println!("{buffer}");
                 
                 if let Some(_) = self.advance() {
                     if self.current == ' ' {
-                        let matched = self.match_word(id);
+                        let matched = self.match_word(buffer);
                         match matched {
                             // If match_word() returns a valid token
                             Some(t) => {
@@ -279,7 +385,7 @@ pub mod lexer {
                             },
                         }
                     } else if let Some(t) = self.match_symbols() {
-                        let matched = self.match_word(id);
+                        let matched = self.match_word(buffer);
                         match matched {
                             // If match_word() returns a valid token
                             Some(matched_t) => {
@@ -302,9 +408,7 @@ pub mod lexer {
                         continue 'word;
                     }
                 } else {
-                    return Some(
-                        Token::new(TokenKind::End, "<END OF FILE>", self.line)
-                    );
+                    return Some(Token::end(&self.line));
                 }
             }
         }
@@ -312,24 +416,24 @@ pub mod lexer {
         fn match_symbols(&mut self) -> Option<Token> {
             match self.current {
                 // Grouping Symbols
-                '(' => Some(Token::new(TokenKind::LPar, "(", self.line)),
-                ')' => Some(Token::new(TokenKind::RPar, ")", self.line)),
-                '[' => Some(Token::new(TokenKind::LBrac, "[", self.line)),
-                ']' => Some(Token::new(TokenKind::RBrac, "]", self.line)),
-                '{' => Some(Token::new(TokenKind::LCurl, "{", self.line)),
-                '}' => Some(Token::new(TokenKind::RCurl, "}", self.line)),
+                '(' => Some(Token::new(TokenKind::LPar, "(", &self.line)),
+                ')' => Some(Token::new(TokenKind::RPar, ")", &self.line)),
+                '[' => Some(Token::new(TokenKind::LBrac, "[", &self.line)),
+                ']' => Some(Token::new(TokenKind::RBrac, "]", &self.line)),
+                '{' => Some(Token::new(TokenKind::LCurl, "{", &self.line)),
+                '}' => Some(Token::new(TokenKind::RCurl, "}", &self.line)),
 
                 // Other Symbols
-                '.' => Some(Token::new(TokenKind::Dot, ".", self.line)),
-                ',' => Some(Token::new(TokenKind::Comma, ",", self.line)),
-                ':' => Some(Token::new(TokenKind::Colon, ":", self.line)),
-                ';' => Some(Token::new(TokenKind::Semicolon, ";", self.line)),
-                '*' => Some(Token::new(TokenKind::Star, "*", self.line)),
+                '.' => Some(Token::new(TokenKind::Dot, ".", &self.line)),
+                ',' => Some(Token::new(TokenKind::Comma, ",", &self.line)),
+                ':' => Some(Token::new(TokenKind::Colon, ":", &self.line)),
+                ';' => Some(Token::new(TokenKind::Semicolon, ";", &self.line)),
+                '*' => Some(Token::new(TokenKind::Star, "*", &self.line)),
 
                 // Misc
                 '\n' => {
                     self.line += 1;
-                    Some(Token::new(TokenKind::Newline, " ", self.line))
+                    Some(Token::new(TokenKind::Newline, " ", &self.line))
                 },
 
                 // Logical Operators
@@ -337,98 +441,107 @@ pub mod lexer {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::PlusEqual, "+=", self.line))
+                            Some(Token::new(TokenKind::PlusEqual, "+=", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::Plus, "+", self.line))
+                            Some(Token::new(TokenKind::Plus, "+", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::Plus, "+", self.line))
+                        Some(Token::new(TokenKind::Plus, "+", &self.line))
                     }
                 },
                 '-' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::MinusEqual, "-=", self.line))
+                            Some(Token::new(TokenKind::MinusEqual, "-=", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::Minus, "-", self.line))
+                            Some(Token::new(TokenKind::Minus, "-", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::Minus, "-", self.line))
+                        Some(Token::new(TokenKind::Minus, "-", &self.line))
                     }
                 },
                 '>' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::MoreEqual, ">=", self.line))
+                            Some(Token::new(TokenKind::MoreEqual, ">=", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::MoreThan, ">", self.line))
+                            Some(Token::new(TokenKind::MoreThan, ">", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::MoreThan, ">", self.line))
+                        Some(Token::new(TokenKind::MoreThan, ">", &self.line))
                     }
                 },
                 '<' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::LessEqual, "<=", self.line))
+                            Some(Token::new(TokenKind::LessEqual, "<=", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::LessThan, "<", self.line))
+                            Some(Token::new(TokenKind::LessThan, "<", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::LessThan, "<", self.line))
+                        Some(Token::new(TokenKind::LessThan, "<", &self.line))
                     }
                 },
                 '=' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::EqualEqual, "==", self.line))
+                            Some(Token::new(TokenKind::EqualEqual, "==", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::Equal, "=", self.line))
+                            Some(Token::new(TokenKind::Equal, "=", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::Equal, "=", self.line))
+                        Some(Token::new(TokenKind::Equal, "=", &self.line))
                     }
                 },
                 '!' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '=' {
                             self.advance();
-                            Some(Token::new(TokenKind::BangEqual, "!=", self.line))
+                            Some(Token::new(TokenKind::BangEqual, "!=", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::Bang, "!", self.line))
+                            Some(Token::new(TokenKind::Bang, "!", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::Bang, "!", self.line))
+                        Some(Token::new(TokenKind::Bang, "!", &self.line))
                     }
                 },
                 '&' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '&' {
                             self.advance();
-                            Some(Token::new(TokenKind::And, "&&", self.line))
+                            Some(Token::new(TokenKind::And, "&&", &self.line))
                         } else {
-                            Some(Token::new(TokenKind::Ampersand, "&", self.line))
+                            Some(Token::new(TokenKind::Ampersand, "&", &self.line))
                         }
                     } else {
-                        Some(Token::new(TokenKind::Ampersand, "&", self.line))
+                        Some(Token::new(TokenKind::Ampersand, "&", &self.line))
                     }
                 },
                 '|' => {
                     if let Some(c) = self.chars.peek() {
                         if *c == '|' {
                             self.advance();
-                            return Some(Token::new(TokenKind::Or, "||", self.line));
+                            return Some(Token::new(TokenKind::Or, "||", &self.line));
                         } else {
-                            return Some(Token::new(TokenKind::Bar, "|", self.line));
+                            return Some(Token::new(TokenKind::Bar, "|", &self.line));
                         }
                     } else {
-                        return Some(Token::new(TokenKind::Bar, "|", self.line));
+                        return Some(Token::new(TokenKind::Bar, "|", &self.line));
                     }
                 },
+
+                // String literal
+                '"' => {
+                    if let Some(t) = self.take_string_literal() {
+                        return Some(t);
+                    } else {
+                        return None;
+                    }
+                }
                 _ => {
                     None
                 },
@@ -440,13 +553,6 @@ pub mod lexer {
             // Define variables
             let scanning = true;
 
-            // Advance to first character
-            // if let Some(_) = self.advance() {
-            //     self.current = self.chars.next().unwrap();
-            // } else {
-            //     return &self.tokens;
-            // }
-
             // Match character
             'start: while scanning {
                 println!("Current char: {}", self.current);
@@ -456,7 +562,7 @@ pub mod lexer {
                     if let Some(_) = self.advance() {
                         continue 'start;
                     } else {
-                        return &self.tokens;
+                        return &self.tokens; 
                     }
                 }
 
@@ -469,14 +575,32 @@ pub mod lexer {
                         return &self.tokens;
                     }
                 } else {
-                    // Match character to identifier/keyword
+                    // Check if character could be a number literal
+                    /*
+                        This if statement repeats 'start if literal found,
+                        no need for else statement (avoids nesting)
+                    */
 
+                    if self.current.is_numeric() {
+                        println!("This is numeric");
+                        // Take number as a literal and parse
+                        if let Some(t) = self.take_number_literal() {
+                            self.tokens.push(t);
+                            continue 'start;
+                        } else {
+                            // If none returned
+                            self.end();
+                            return &self.tokens;
+                        }
+                    }
+
+                    // Match character to identifier/keyword
                     if let Some(mut t) = self.take_word_and_match() {
 
                         // Match returned 
                         match t.kind {
                             // End: stop tokenizing
-                            TokenKind::End => {
+                            TokenKind::EndOfFile => {
                                 self.tokens.push(t);
                                 return &self.tokens;
                             },
@@ -518,7 +642,7 @@ pub mod lexer {
                 }
             }
             
-            self.tokens.push(Token::end(self.line));
+            self.tokens.push(Token::end(&self.line));
             &self.tokens
         }
     }
