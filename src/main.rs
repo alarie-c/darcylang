@@ -48,6 +48,9 @@ fn main() {
                         println!("{:#?}", token);
                     }
                 },
+                "--source" => {
+                    println!("{:?}", buffer);
+                }
                 _ => {},
             }
         }

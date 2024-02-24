@@ -1,6 +1,12 @@
 pub mod tokens {
 
     #[derive(Debug, PartialEq, Eq)]
+    pub enum MatchResult {
+        Match(Token),
+        None,
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
     pub enum TokenKind {
         // Grouping Operators
         RPar,
@@ -43,16 +49,15 @@ pub mod tokens {
         Or,
 
         // Reserved Words
-        Set,
-        Let,
-        Const,
-        While,
+        Func,
+        Matrix,
+        Out,
         If,
-        Else,
         Elif,
+        Else,
         For,
-        //Func,
-        //Out,
+        While,
+        Const,
         End,
 
         // Other
@@ -63,7 +68,7 @@ pub mod tokens {
         NumberLiteral,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq, Eq)]
     pub struct Token {
         pub lex: String,
         pub kind: TokenKind,
@@ -94,7 +99,7 @@ pub mod tokens {
 pub mod lexer {
     use std::iter::Peekable;
     //use crate::error::error::{DarcyError, ErrorKind};
-    use super::tokens::{Token, TokenKind};
+    use super::tokens::{MatchResult, Token, TokenKind};
 
     // Lexer struct contains data to tokenize file
     pub struct Lexer<Iter: Iterator<Item = char>> {
@@ -117,68 +122,34 @@ pub mod lexer {
         }
 
         fn end(&mut self) {
-            self.tokens.push(Token::end(&&self.line));
+            self.tokens.push(Token::end(&self.line));
         }
 
-        fn advance(&mut self) -> Option<()> {
+        // Attempts to advance the iterator if possible
+        // If not possible, pushes an EOF token and returns None
+        fn advance(&mut self) -> bool {
             if let Some(character) = self.chars.next() {
                 self.current = character;
-                return Some(());
+                return true;
             } else {
                 self.end();
-                return None;
+                return false;
             }
         }
 
-        fn match_keyword(&mut self, word: &String) -> Option<Token> {
-            println!("{word}");
-            
+        // Match a given string to a valid keyword
+        // Returns the token of that keyword
+        fn match_keyword(&mut self, word: &String) -> Option<Token> {          
             match word.trim() {
-                // Match word to a keyword
-                "let" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::Let, "let", &self.line));
-                },
-                "end" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::End, "end", &self.line));
-                },
-                "set" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::Set, "set", &self.line));
-                },
-                "const" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::Const, "const", &self.line));
-                },
-                "while" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::While, "while", &self.line));
-                },
-                "if" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::If, "if", &self.line));
-                },
-                "else" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::Else, "else", &self.line));
-                },
-                "elif" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::Elif, "elif", &self.line));
-                },
-                "for" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", &self.line));
-                },
-                "func" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", &self.line));
-                },
-                "out" => {
-                    // Return keyword token
-                    return Some(Token::new(TokenKind::For, "for", &self.line));
-                },
+                "func" => Some(Token::new(TokenKind::Func, "func", &self.line)),
+                "out" => Some(Token::new(TokenKind::Out, "out", &self.line)),
+                "if" => Some(Token::new(TokenKind::If, "if", &self.line)),
+                "elif" => Some(Token::new(TokenKind::Elif, "elif", &self.line)),
+                "else" => Some(Token::new(TokenKind::Else, "else", &self.line)),
+                "for" => Some(Token::new(TokenKind::For, "for", &self.line)),
+                "matrix" => Some(Token::new(TokenKind::Matrix, "matrix", &self.line)),
+                "const" => Some(Token::new(TokenKind::Const, "const", &self.line)),
+                "end" => Some(Token::new(TokenKind::End, "end", &self.line)),
 
                 // If word is not a keyword
                 _ => {
@@ -187,36 +158,50 @@ pub mod lexer {
             }
         }
 
+
+        // Match a word to an existing identifier in current scope
+        // Returns the token of that identifier
         fn match_id(&mut self, word: &String) -> Option<Token> {
             todo!();
         }
 
-        fn match_word(&mut self, word: String) -> Option<Token> {
+        /*
+            match_word() returns MatchResult because default Option 'None'
+            is used to signify that advance() has reached EOF,
+
+            All helper functions return 'None' back into the scan() method,
+            signifying EOF.
+        */
+        // Tries to match a word to a keyword
+        // If not, tries to match to an identifier
+        fn match_word(&mut self, word: &String) -> MatchResult {
             // Get keyword match
-            let keyword_match = self.match_keyword(&word);
+            let keyword_match = self.match_keyword(word);
             
             // Determine if match found
             match keyword_match {
                 // Return keyword if yes
                 Some(t) => {
-                    return Some(t);
+                    return MatchResult::Match(t);
                 },
                 // Otherwise search for identifier
                 None => {
-                    if let Some(t) = self.match_id(&word) {
+                    if let Some(t) = self.match_id(word) {
                         // Return ID token if found
-                        return Some(t);
+                        return MatchResult::Match(t);
                     } else {
                         // Otherwise return none
-                        return None;
+                        return MatchResult::None;
                     }
                 }
             }
         }
 
-        fn take_until_char(&mut self) -> Option<()> {
+        // Skips whitespace and advances iterator to a character
+        // Returns None if reaches EOF
+        fn skip_ws(&mut self) -> Option<()> {
             'wait_for_char: loop {
-                if let Some(_) = self.advance() {
+                if self.advance() {
                     if self.current == ' ' {
                         continue 'wait_for_char;
                     } else {
@@ -228,41 +213,37 @@ pub mod lexer {
             }
         }
 
-        fn take_word(&mut self) -> Option<String> {
+        // Takes all alphanumeric characters
+        // Exceptions for _
+        fn take_alphanum(&mut self) -> Option<String> {
             let mut buffer = String::new();
 
-            'word: loop {
+            'take_alphanum: loop {
                 buffer.push(self.current);
-                if let Some(_) = self.advance() {
-                    if self.current == ' ' {
-                        if buffer.is_empty() || buffer == " " {
-                            // TODO: darcy error handling
-                            eprintln!("No identifier given for let statement error!");
-                            std::process::exit(1);
-                        } else {
-                            return Some(buffer);
-                        }
-                    } else if let Some(t) = self.match_symbols() {
-                        // Push symbol token
-                        self.tokens.push(t);
 
-                        // Return identifier
-                        if buffer.is_empty() || buffer == " " {
-                            // TODO: darcy error handling
-                            eprintln!("No identifier given for let statement error!");
+                if self.advance() {
+                    if self.current.is_alphanumeric() || self.current == '_' {
+                        // Continue of character is alphanumeric or _
+                        continue 'take_alphanum;
+                    } else {
+                        // Return word if character is not
+                        if buffer.is_empty() {
+                            // TODO: handle error here
+                            eprintln!("Identifier error");
                             std::process::exit(1);
                         } else {
                             return Some(buffer);
                         }
                     }
-                } else {
+                } else {    
+                    // Signifies that advance() returned EOF.
                     return None;
                 }
             }
         }
 
         // Takes number literal
-        // ADVANCING
+        // Advances the iterator
         fn take_number_literal(&mut self) -> Option<Token> {
             let mut buffer = String::new();
 
@@ -274,7 +255,7 @@ pub mod lexer {
 
                 // If '_', skip and go to next number
                 if self.current == '_' {
-                    if let Some(_) = self.advance() {
+                    if self.advance() {
                         continue 'literal;
                     } else {
                         return None;
@@ -285,9 +266,14 @@ pub mod lexer {
                 buffer.push(self.current);
 
                 // Go to next character (if possible)
-                if let Some(c) = self.advance() {
+                if self.advance() {
                     // If character is white space
                     if self.current == ' ' {
+                        // Drop the carriage return (if present)
+                        if buffer.ends_with('\r') {
+                            buffer.pop();
+                        }
+
                         // Make token and return
                         let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
                         return Some(token);
@@ -297,6 +283,12 @@ pub mod lexer {
                             // Continue loop (dot gets pushed to buffer)
                             continue 'literal;
                         }
+
+                        // Drop the carriage return (if present)
+                        if buffer.ends_with('\r') {
+                            buffer.pop();
+                        }
+
                         // Make token and return
                         let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
                         return Some(token);
@@ -311,16 +303,14 @@ pub mod lexer {
         }   
 
         // Takes string literal
-        // PEEKING
+        // Peeks the iterator
         fn take_string_literal(&mut self) -> Option<Token> {
             let mut buffer = String::new();
 
             // Advance past the quotation mark
             match self.advance() {
-                Some(_) => {},
-                None => {
-                    return None;
-                },
+                true => {},
+                false => return None,
             }
 
             'literal: loop {
@@ -333,16 +323,15 @@ pub mod lexer {
                             
                             // Advance past the last quotation
                             match self.advance() {
-                                Some(_) => {
+                                true => {
                                     // Return literal token
                                     return Some(token);
                                 },
-                                None => {
+                                false => {
                                     // Push the literal token
                                     self.tokens.push(token);
 
                                     // Signal end of source file
-                                    self.end();
                                     return None;
                                 },
                             }
@@ -359,56 +348,28 @@ pub mod lexer {
             }
         }
 
-        fn take_word_and_match(&mut self) -> Option<Token> {
-            let mut buffer = String::new();
-            
-            // Take all characters until we reach whitespace or a symbol
-            'word: loop {
-                buffer.push(self.current);
-                println!("{buffer}");
-                
-                if let Some(_) = self.advance() {
-                    if self.current == ' ' {
-                        let matched = self.match_word(buffer);
-                        match matched {
-                            // If match_word() returns a valid token
-                            Some(t) => {
-                                // Return recieved token
-                                return Some(t);
-                            },
+        // Takes alphanumeric character until reaches one that doesn't
+        // Attempts to match that buffer to a keyword or identifier
+        // Returns the token of the identifier or keyword (if found)
+        fn take_alphanum_and_match(&mut self) -> Option<Token> {
+            let buffer = self.take_alphanum();
 
-                            // If match_word() returns None
-                            None => {
-                                // TODO: add darcy error handling here!
-                                eprintln!("Unknown ID error");
-                                todo!();
-                            },
-                        }
-                    } else if let Some(t) = self.match_symbols() {
-                        let matched = self.match_word(buffer);
-                        match matched {
-                            // If match_word() returns a valid token
-                            Some(matched_t) => {
-                                // Push the consumed symbol token
-                                self.tokens.push(t);
-
-                                // Return recieved token
-                                return Some(matched_t);
-                            },
-
-                            // If match_word() returns None
-                            None => {
-                                // TODO: add darcy error handling here!
-                                eprintln!("Unknown ID error");
-                                todo!();
-                            },
-                        }
-                    } else {
-                        // Repeat
-                        continue 'word;
+            match buffer {
+                Some(string) => {
+                    let matched = self.match_word(&string);
+                    match matched {
+                        // If match then return token
+                        MatchResult::Match(t) => return Some(t),
+                        MatchResult::None => {
+                            // TODO: handle error here
+                            eprintln!("Identifier error @ match time");
+                            std::process::exit(1);
+                        },
                     }
-                } else {
-                    return Some(Token::end(&self.line));
+                },
+                None => {
+                    // Signals EOF
+                    return None;
                 }
             }
         }
@@ -433,7 +394,10 @@ pub mod lexer {
                 // Misc
                 '\n' => {
                     self.line += 1;
-                    Some(Token::new(TokenKind::Newline, " ", &self.line))
+                    Some(Token::new(TokenKind::Newline, "newline", &self.line))
+                },
+                '\r' => {
+                    Some(Token::new(TokenKind::Empty, "empty", &self.line))
                 },
 
                 // Logical Operators
@@ -555,11 +519,11 @@ pub mod lexer {
 
             // Match character
             'start: while scanning {
-                println!("Current char: {}", self.current);
+                println!("Current char: `{}`", self.current);
 
                 // Skip token if whitespace
                 if self.current == ' ' || self.current == '\t' || self.current == '\r' {
-                    if let Some(_) = self.advance() {
+                    if self.advance() {
                         continue 'start;
                     } else {
                         return &self.tokens; 
@@ -569,7 +533,7 @@ pub mod lexer {
                 // Match character to symbols
                 if let Some(t) = self.match_symbols() {
                     self.tokens.push(t);
-                    if let Some(_) = self.advance() {
+                    if self.advance() {
                         continue 'start;
                     } else {
                         return &self.tokens;
@@ -595,7 +559,7 @@ pub mod lexer {
                     }
 
                     // Match character to identifier/keyword
-                    if let Some(mut t) = self.take_word_and_match() {
+                    if let Some(t) = self.take_alphanum_and_match() {
 
                         // Match returned 
                         match t.kind {
@@ -604,32 +568,6 @@ pub mod lexer {
                                 self.tokens.push(t);
                                 return &self.tokens;
                             },
-
-                            // Let: get var name as literal 
-                            TokenKind::Let => {
-                                
-                                // Get identifier
-                                if let Some(_) = self.take_until_char() {
-                                    if let Some(id) = self.take_word() {
-                                        t.lex = id;
-                                        self.tokens.push(t);
-                                    } else {
-                                        self.end();
-                                        return &self.tokens;
-                                    }
-                                } else {
-                                    self.end();
-                                    return &self.tokens;
-                                }
-                            },
-                            
-                            // Set: get var from context
-                            TokenKind::Set => {
-                                if let Some(_) = self.take_until_char() {
-                                    todo!();
-                                }
-                            }
-
 
                             _ => {
                                 self.tokens.push(t);
