@@ -1,18 +1,18 @@
-#DarcyLang
+# DarcyLang
 Fun Rust language implementation project.
 
-##Project TODO
+## Project TODO
 - [ ] Create abstract syntax tree from tokens
 - [ ] Walk and evaluate the AST
 - [ ] Finalize custom error handling and reporting
 - [ ] Create infrastructure for handling context and scope
 
-##Tokenizer TODO
+## Tokenizer TODO
 - [x] Cleanup code
 - [ ] Reduce redundancy
 - [ ] Handle user errors
 - [ ] Integrate context and scope
 
-##Errors TODO
+## Errors TODO
 - [ ] Finalize error infrastructure
 - [ ] Context-specific error reporting
