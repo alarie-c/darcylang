@@ -2,11 +2,12 @@
 x = 5
 str = "Hello"
 
-const pi = 3.14159
+const PI = 3.14159
+const VERSION as Int = 2
 
 out x
 out str
-out pi
+out PI
 
 // Selection
 if x > 5
@@ -57,6 +58,74 @@ out row1                    prints "5, 10, 0"
 
 point = my_matrix[1, 2]
 out point                   prints "10"
+
+// Classes
+class Rectangle
+    width as Num
+    height as Num
+end
+
+impl Rectangle
+    func new <- p #perimeter
+        return Rectangle()
+            width as p[0]
+            height as p[1]
+        end
+    end 
+
+    method calculate_area
+        area = self.width * self.height
+        return area 
+    end
+end
+
+my_rectangle = Rectangle:new(perimeter as (5, 10))
+my_area = my_rectangle.calculate_area()
+
+out my_rectangle
+out my_area
+
+// Enumerations
+enum Utilities
+    Gas with Num,
+    Water with Num,
+    Electric with Num,
+end
+
+impl Utilities
+    method pay for *
+        wallet.funds -= &this
+    end
+end
+
+gas = Utilities:Gas(100)
+water = Utilities:Water(100)
+elec = Utilities:Electric(100)
+
+gas.pay()
+water.pay()
+elec.pay()
+
+out gas
+out water
+out elec
+
+// Enumerations explanation:
+Enumerations contain variants. Each variant can optionally have a field of a certain type (only 1 field).
+You can implement methods and functions for each using the same syntax as classes.
+
+Methods use "this" to refer to an enum rather than "self" like classes.
+When declaring methods or functions for enums, specify which variants they are implemented for using "for __" and the
+variant name. If the method/function is applied to all variants, use the wildcard operator `*`.
+
+You can access an instance of an enum variant's field with the `&` 'field access' operator.
+
+
+
+
+
+
+
 
 
 
