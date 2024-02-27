@@ -5,7 +5,7 @@ use std::process;
 //use error::error::{DarcyError, ErrorKind};
 use lexer::lexer::Lexer;
 use lexer::tokens::{Token, TokenKind};
-
+use error::error::DarcyError;
 
 
 mod lexer;
@@ -24,12 +24,31 @@ fn main() {
         // Read file as string into buffer
         file.read_to_string(&mut buffer).expect("Error");
 
+        // Get lines content
+        let mut lines = Vec::<String>::new();
+        let lines_iter = buffer.chars();
+
+        // Iterate over each character, making new strings when \n found
+        let mut buf = String::new();
+        for c in lines_iter {
+            if c == '\n' {
+                lines.push(buf);
+                buf = String::new();
+
+            } else {
+                buf.push(c);
+            }
+        }
+
+        println!("{:#?}", lines);
+
         // Create lexer and iterator
         let iterator = buffer.chars().peekable();
-        let mut lexer = Lexer::new(iterator);
+        let mut lexer = Lexer::new(iterator, lines);
+
 
         // Scan iterator for tokens
-        let tokens = lexer.scan();
+        let (tokens, errors) = lexer.scan();
 
         // Clean tokens
         let mut tokenized: Vec<&Token> = Vec::new();
@@ -37,6 +56,11 @@ fn main() {
             if token.kind != TokenKind::Empty {
                 tokenized.push(token);
             }
+        }
+
+        // Print errors
+        for err in errors {
+            err.report();
         }
 
         // Match CLI args for flags
@@ -50,7 +74,7 @@ fn main() {
                 },
                 "--source" => {
                     println!("{:?}", buffer);
-                }
+                },
                 _ => {},
             }
         }

@@ -98,6 +98,8 @@ pub mod tokens {
 
 pub mod lexer {
     use std::iter::Peekable;
+    use crate::error::error::{DarcyError, ErrorKind};
+
     //use crate::error::error::{DarcyError, ErrorKind};
     use super::tokens::{MatchResult, Token, TokenKind};
 
@@ -107,22 +109,54 @@ pub mod lexer {
         pub tokens: Vec<Token>,
         pub line: usize,
         pub current: char,
+        pub lines: Vec<String>,
+        pub errors: Vec<DarcyError>,
     }
 
     impl<Iter: Iterator<Item = char>> Lexer<Iter> {
 
         // Creat a new lexer istance storing iter and neccesary variables
-        pub fn new(chars: Peekable<Iter>) -> Self {
+        pub fn new(chars: Peekable<Iter>, lines: Vec<String>) -> Self {
             Self {
                 chars,
                 tokens: Vec::new(),
                 line: 1 as usize,
                 current: ' ',
+                lines,
+                errors: Vec::new(),
             }
         }
 
         fn end(&mut self) {
             self.tokens.push(Token::end(&self.line));
+        }
+
+        // Throws an error with error.rs file
+        // Exits the process
+        fn error(&mut self, kind: ErrorKind, offender: &str) {
+            // Throw error
+            let line_content = self.take_line(self.line);
+            match line_content.1 {
+                Some(content) => {
+                    let err = DarcyError::new(
+                        kind,
+                        &line_content.0,
+                        offender.to_string(),
+                        content.to_string(),
+                    );
+                    self.errors.push(err);
+
+                },
+                None => {
+                    let err = DarcyError::new(
+                        kind,
+                        &line_content.0,
+                        String::new(),
+                        String::new()
+                    );
+                    self.errors.push(err);
+                }
+            }
         }
 
         // Attempts to advance the iterator if possible
@@ -134,6 +168,18 @@ pub mod lexer {
             } else {
                 self.end();
                 return false;
+            }
+        }
+
+        // Attempts to get the content of a line from the lines vec
+        // Returns a tuple containing the line # (0) and content (1)
+        fn take_line(&mut self, line: usize) -> (usize, Option<&String>) {
+            let content = self.lines.get(line - 4);
+            match content {
+                Some(chars) => {
+                    return (line, Some(chars));
+                },
+                None => (0usize, None),
             }
         }
 
@@ -152,9 +198,7 @@ pub mod lexer {
                 "end" => Some(Token::new(TokenKind::End, "end", &self.line)),
 
                 // If word is not a keyword
-                _ => {
-                    return None;
-                }
+                _ => None,
             }
         }
 
@@ -162,7 +206,7 @@ pub mod lexer {
         // Match a word to an existing identifier in current scope
         // Returns the token of that identifier
         fn match_id(&mut self, word: &String) -> Option<Token> {
-            todo!();
+            return None;
         }
 
         /*
@@ -228,15 +272,14 @@ pub mod lexer {
                     } else {
                         // Return word if character is not
                         if buffer.is_empty() {
-                            // TODO: handle error here
-                            eprintln!("Identifier error");
-                            std::process::exit(1);
+                            self.error(ErrorKind::IdentifierError, &buffer);
+                            return Some(String::new());
                         } else {
                             return Some(buffer);
                         }
                     }
                 } else {    
-                    // Signifies that advance() returned EOF.
+                    // Signals that advance() returned EOF.
                     return None;
                 }
             }
@@ -361,9 +404,8 @@ pub mod lexer {
                         // If match then return token
                         MatchResult::Match(t) => return Some(t),
                         MatchResult::None => {
-                            // TODO: handle error here
-                            eprintln!("Identifier error @ match time");
-                            std::process::exit(1);
+                            self.error(ErrorKind::IdentifierError, &string);
+                            return Some(Token::new(TokenKind::Empty, "", &self.line));
                         },
                     }
                 },
@@ -513,7 +555,7 @@ pub mod lexer {
         }
         
         // Scan each character of the file
-        pub fn scan(&mut self) -> &Vec<Token> {
+        pub fn scan(&mut self) -> (&Vec<Token>, &Vec<DarcyError>) {
             // Define variables
             let scanning = true;
 
@@ -526,7 +568,7 @@ pub mod lexer {
                     if self.advance() {
                         continue 'start;
                     } else {
-                        return &self.tokens; 
+                        return (&self.tokens, &self.errors); 
                     }
                 }
 
@@ -536,7 +578,7 @@ pub mod lexer {
                     if self.advance() {
                         continue 'start;
                     } else {
-                        return &self.tokens;
+                        return (&self.tokens, &self.errors);
                     }
                 } else {
                     // Check if character could be a number literal
@@ -554,7 +596,7 @@ pub mod lexer {
                         } else {
                             // If none returned
                             self.end();
-                            return &self.tokens;
+                            return (&self.tokens, &self.errors);
                         }
                     }
 
@@ -566,7 +608,7 @@ pub mod lexer {
                             // End: stop tokenizing
                             TokenKind::EndOfFile => {
                                 self.tokens.push(t);
-                                return &self.tokens;
+                                return (&self.tokens, &self.errors);
                             },
 
                             _ => {
@@ -581,7 +623,7 @@ pub mod lexer {
             }
             
             self.tokens.push(Token::end(&self.line));
-            &self.tokens
+            (&self.tokens, &self.errors)
         }
     }
 }

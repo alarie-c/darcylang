@@ -11,3 +11,10 @@ end
 "hello"
 
 :
+
+test_id_error1
+
+test_id_error2 -> 45
+
+;
+
