@@ -22,18 +22,18 @@ pub mod tokens {
         Comma,
         Semicolon,
         Colon,
-        Tilde,
-        SlashSlash,
+        //Tilde,
+        //SlashSlash,
         Bar,
 
         // Operators
-        Slash,
+        //Slash,
         Plus,
         Minus,
         PlusEqual,
         MinusEqual,
-        Percent,
-        Carat,
+        //Percent,
+        //Carat,
         Star,
 
         // Logical Operators
@@ -56,7 +56,6 @@ pub mod tokens {
         Elif,
         Else,
         For,
-        While,
         Const,
         End,
 
@@ -98,7 +97,7 @@ pub mod tokens {
 
 pub mod lexer {
     use std::iter::Peekable;
-    use crate::error::error::{DarcyError, ErrorKind};
+    use crate::error::{error_kind::ErrorKind, darcy_error::DarcyError};
 
     //use crate::error::error::{DarcyError, ErrorKind};
     use super::tokens::{MatchResult, Token, TokenKind};
@@ -139,20 +138,21 @@ pub mod lexer {
             match line_content.1 {
                 Some(content) => {
                     let err = DarcyError::new(
-                        kind,
+                        &content,
+                        offender,
                         &line_content.0,
-                        offender.to_string(),
-                        content.to_string(),
+                        kind,
                     );
                     self.errors.push(err);
 
                 },
                 None => {
+                    // TODO: Fix this!
                     let err = DarcyError::new(
-                        kind,
+                        "",
+                        offender,
                         &line_content.0,
-                        String::new(),
-                        String::new()
+                        kind
                     );
                     self.errors.push(err);
                 }

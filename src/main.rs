@@ -5,8 +5,7 @@ use std::process;
 //use error::error::{DarcyError, ErrorKind};
 use lexer::lexer::Lexer;
 use lexer::tokens::{Token, TokenKind};
-use error::error::DarcyError;
-
+use error::{error_kind::ErrorKind, darcy_error::DarcyError};
 
 mod lexer;
 mod error;

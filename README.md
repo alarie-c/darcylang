@@ -20,7 +20,7 @@ Fun Rust language implementation project.
 
 ## Errors TODO
 - [x] Context-specific error reporting
-- [ ] Refactor error infrastructure (its very poorly organized)
+- [x] Refactor error infrastructure (its very poorly organized)
 
 ## Issues TODO
 - [ ] Fix line numbers being out of sync between error and lexer
