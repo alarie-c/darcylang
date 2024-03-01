@@ -1,4 +1,4 @@
-# DarcyLang
+# DarcyLang :D
 Fun Rust language implementation project.
 
 ## Updates
@@ -9,7 +9,8 @@ Fun Rust language implementation project.
 - [ ] Create abstract syntax tree from tokens
 - [ ] Walk and evaluate the AST
 - [ ] Finalize custom error handling and reporting
-- [ ] Create infrastructure for handling context and scope
+- [x] Create infrastructure for handling context and scope
+- [ ] Redo error reporting infrastructure (again)
 
 ## Tokenizer TODO
 - [x] Cleanup code
@@ -18,9 +19,12 @@ Fun Rust language implementation project.
 - [ ] Integrate context and scope
 - [x] Get lines
 
+## Scope TODO
+- [x] Environment and context infrastructure
+- [ ] Find values in memory from environment and parent environments 
+
 ## Errors TODO
-- [x] Context-specific error reporting
-- [x] Refactor error infrastructure (its very poorly organized)
+- [ ] Error reporting should use enumerations and simpler reporting methods`
 
 ## Issues TODO
 - [ ] Fix line numbers being out of sync between error and lexer

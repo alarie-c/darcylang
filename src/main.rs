@@ -1,16 +1,20 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process;
 //use error::error::{DarcyError, ErrorKind};
 use lexer::lexer::Lexer;
-use lexer::tokens::{Token, TokenKind};
+use tokens::tokens::{Token, TokenKind};
 use error::{error_kind::ErrorKind, darcy_error::DarcyError};
+
+use crate::scope::scope::GlobalEnvironment;
 
 mod lexer;
 mod error;
 mod ast;
 mod scope;
+mod tokens;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -42,10 +46,15 @@ fn main() {
 
         println!("{:#?}", lines);
 
+        // Create the global environment
+        let mut glbl_env = GlobalEnvironment {
+            values: HashMap::new(),
+            children: Vec::new(),
+        };
+
         // Create lexer and iterator
         let iterator = buffer.chars().peekable();
-        let mut lexer = Lexer::new(iterator, lines);
-
+        let mut lexer = Lexer::new(iterator, lines, glbl_env);
 
         // Scan iterator for tokens
         let (tokens, errors) = lexer.scan();
