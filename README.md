@@ -10,7 +10,8 @@ Fun Rust language implementation project.
 - [ ] Walk and evaluate the AST
 - [ ] Finalize custom error handling and reporting
 - [x] Create infrastructure for handling context and scope
-- [ ] Redo error reporting infrastructure (again)
+- [x] Redo error reporting infrastructure (again)
+- [ ] Eventually should redo the lexer (again)
 
 ## Tokenizer TODO
 - [x] Cleanup code
@@ -24,7 +25,7 @@ Fun Rust language implementation project.
 - [ ] Find values in memory from environment and parent environments 
 
 ## Errors TODO
-- [ ] Error reporting should use enumerations and simpler reporting methods`
+- [x] Error reporting should use enumerations and simpler reporting methods`
 
 ## Issues TODO
 - [ ] Fix line numbers being out of sync between error and lexer

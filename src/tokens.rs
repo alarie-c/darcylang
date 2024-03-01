@@ -67,8 +67,8 @@ pub mod tokens {
         EndOfFile, 
         Empty, 
         Newline, 
-        StringLiteral, 
-        NumberLiteral,
+        StringLiteral(String), 
+        NumberLiteral(String),
     }
 
     #[derive(Debug, PartialEq, Eq)]

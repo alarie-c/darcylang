@@ -1,9 +1,6 @@
 pub mod lexer {
     use std::iter::Peekable;
-    use crate::{error::{darcy_error::DarcyError, error_kind::ErrorKind}, scope::scope::GlobalEnvironment};
-
-    //use crate::error::error::{DarcyError, ErrorKind};
-    use crate::tokens::tokens::{MatchResult, Token, TokenKind};
+    use crate::{error::errors::Errors, scope::scope::GlobalEnvironment, tokens::tokens::{MatchResult, Token, TokenKind}};
 
     // Lexer struct contains data to tokenize file
     pub struct Lexer<Iter: Iterator<Item = char>> {
@@ -12,7 +9,7 @@ pub mod lexer {
         pub line: usize,
         pub current: char,
         pub lines: Vec<String>,
-        pub errors: Vec<DarcyError>,
+        pub errors: Vec<Errors>,
         pub glbl_env: GlobalEnvironment,
     }
 
