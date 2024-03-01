@@ -10,6 +10,7 @@ use error::{error_kind::ErrorKind, darcy_error::DarcyError};
 mod lexer;
 mod error;
 mod ast;
+mod scope;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
