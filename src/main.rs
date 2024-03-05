@@ -3,6 +3,7 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process;
+<<<<<<< HEAD
 
 use lexer::*;
 use error::*;
@@ -13,6 +14,14 @@ use tokens::*;
 use crate::lexer::lexer::Lexer;
 use crate::scope::scope::GlobalEnvironment;
 use crate::tokens::tokens::{Token, TokenKind};
+=======
+//use error::error::{DarcyError, ErrorKind};
+use lexer::lexer::Lexer;
+use tokens::tokens::{Token, TokenKind};
+use error::{error_kind::ErrorKind, darcy_error::DarcyError};
+>>>>>>> bd1a31444c128380d505fb63bcef4d74f948947a
+
+use crate::scope::scope::GlobalEnvironment;
 
 mod lexer;
 mod error;

@@ -1,12 +1,20 @@
 pub mod tokens {
 
+<<<<<<< HEAD
     #[derive(Debug, PartialEq, Eq, Clone)]
+=======
+    #[derive(Debug, PartialEq, Eq)]
+>>>>>>> bd1a31444c128380d505fb63bcef4d74f948947a
     pub enum MatchResult {
         Match(Token),
         None,
     }
 
+<<<<<<< HEAD
     #[derive(Debug, PartialEq, Eq, Clone)]
+=======
+    #[derive(Debug, PartialEq, Eq)]
+>>>>>>> bd1a31444c128380d505fb63bcef4d74f948947a
     pub enum TokenKind {
         // Grouping Operators
         RPar,
@@ -52,6 +60,10 @@ pub mod tokens {
 
         // Reserved Words
         Func,
+<<<<<<< HEAD
+=======
+        Matrix,
+>>>>>>> bd1a31444c128380d505fb63bcef4d74f948947a
         Out,
         If,
         Elif,
@@ -70,7 +82,11 @@ pub mod tokens {
         NumberLiteral(String),
     }
 
+<<<<<<< HEAD
     #[derive(Debug, PartialEq, Eq, Clone)]
+=======
+    #[derive(Debug, PartialEq, Eq)]
+>>>>>>> bd1a31444c128380d505fb63bcef4d74f948947a
     pub struct Token {
         pub lex: String,
         pub kind: TokenKind,
