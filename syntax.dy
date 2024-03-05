@@ -120,7 +120,105 @@ variant name. If the method/function is applied to all variants, use the wildcar
 
 You can access an instance of an enum variant's field with the `&` 'field access' operator.
 
+// Type Conversions
+a = 2
+b = 1
 
+div = a / b
+out div             --> 0
+
+float_div = a as Num / b as Num
+out float_div       --> 0.5
+
+// Plotting
+include plotting end
+
+
+// Graph of y = 2x+b
+func slope <- x
+    return (2 * x) + b 
+end
+
+eq_graph = graph("2d cartesian")
+configure eq_graph
+    theme: "default"
+    title: "Graph of y = 2x + b"
+    data: slope
+
+    y_label: "Y Axis"
+    x_label: "X Axis"
+
+    y_step: 1
+    x_step: 1
+
+    y_bounds: range(-10, 10)
+    x_bounds: range(-10, 10)
+    
+    format: "jpg"    
+end
+
+eq_graph.save("equation-graph")
+
+
+points = [
+    (0, 5),
+    (1, 2),
+    (5, 3),
+    (2, 3)
+]
+
+points_graph = graph("2d cartesian")
+configure points_graph
+    theme: "default"
+    title: "A Graph of Random Points"
+    data: points
+    point: "small_dot"
+    point_color: "orange"
+
+    y_label: "Y Axis"
+    x_label: "X Axis"
+
+    y_step: 1
+    x_step: 1
+
+    y_bounds: range(points.coord_min_y(), points.coord_max_y())
+    x_bounds: range(points.coord_min_x(), points.coord_max_x())
+    
+    format: "png"  
+end
+
+points_graph.save("points-graph")
+
+// Multiple datasets
+points1 = [
+    (0, 5),
+    (1, 2)
+]
+
+points2 = [
+    (5, 3),
+    (2, 3)
+]
+
+points_graph = graph("2d cartesian")
+configure points_graph
+    theme: "default"
+    title: "A Graph of Random Points"
+    data: [points1, points2]                // Enter data as a list
+    point: "small_dot"
+    point_color: "orange"
+
+    y_label: "Y Axis"
+    x_label: "X Axis"
+
+    y_step: 1
+    x_step: 1
+
+    y_bounds: range(points1.coord_min_y(), points1.coord_max_y())
+    x_bounds: range(points1.coord_min_x(), points1.coord_max_x())
+    
+    format: "png"  
+end
 
 
 

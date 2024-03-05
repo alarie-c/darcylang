@@ -1,106 +1,6 @@
-pub mod tokens {
-
-    #[derive(Debug, PartialEq, Eq)]
-    pub enum MatchResult {
-        Match(Token),
-        None,
-    }
-
-    #[derive(Debug, PartialEq, Eq)]
-    pub enum TokenKind {
-        // Grouping Operators
-        RPar,
-        LPar,
-        RBrac,
-        LBrac,
-        RCurl,
-        LCurl,
-
-        // Symbols
-        Ampersand,
-        Dot,
-        Comma,
-        Semicolon,
-        Colon,
-        //Tilde,
-        //SlashSlash,
-        Bar,
-
-        // Operators
-        //Slash,
-        Plus,
-        Minus,
-        PlusEqual,
-        MinusEqual,
-        //Percent,
-        //Carat,
-        Star,
-
-        // Logical Operators
-        MoreThan,
-        MoreEqual,
-        LessThan,
-        LessEqual,
-        Bang,
-        BangEqual,
-        Equal,
-        EqualEqual,
-        And,
-        Or,
-
-        // Reserved Words
-        Func,
-        Matrix,
-        Out,
-        If,
-        Elif,
-        Else,
-        For,
-        Const,
-        End,
-
-        // Other
-        EndOfFile, 
-        Empty, 
-        Newline, 
-        StringLiteral, 
-        NumberLiteral,
-    }
-
-    #[derive(Debug, PartialEq, Eq)]
-    pub struct Token {
-        pub lex: String,
-        pub kind: TokenKind,
-        pub line: usize,
-    }
-
-    impl Token {
-        // Create a new token from arguments
-        pub fn new(kind: TokenKind, lex: &str, line: &usize) -> Self {
-            Self {
-                kind,
-                lex: lex.to_string(),
-                line: *line,
-            }
-        }
-
-        // Return end of file token
-        pub fn end(line: &usize) -> Self {
-            Self {
-                kind: TokenKind::EndOfFile,
-                lex: "<END OF FILE>".to_string(),
-                line: *line,
-            }
-        }
-    }
-}
-
 pub mod lexer {
     use std::iter::Peekable;
-    use crate::error::{error_kind::ErrorKind, darcy_error::DarcyError};
-
-    //use crate::error::error::{DarcyError, ErrorKind};
-    use super::tokens::{MatchResult, Token, TokenKind};
+    use crate::{error::errors::Errors, scope::scope::GlobalEnvironment, tokens::tokens::{MatchResult, Token, TokenKind}};
 
     // Lexer struct contains data to tokenize file
     pub struct Lexer<Iter: Iterator<Item = char>> {
@@ -109,13 +9,14 @@ pub mod lexer {
         pub line: usize,
         pub current: char,
         pub lines: Vec<String>,
-        pub errors: Vec<DarcyError>,
+        pub errors: Vec<Errors>,
+        pub glbl_env: GlobalEnvironment,
     }
 
     impl<Iter: Iterator<Item = char>> Lexer<Iter> {
 
         // Creat a new lexer istance storing iter and neccesary variables
-        pub fn new(chars: Peekable<Iter>, lines: Vec<String>) -> Self {
+        pub fn new(chars: Peekable<Iter>, lines: Vec<String>, glbl_env: GlobalEnvironment) -> Self {
             Self {
                 chars,
                 tokens: Vec::new(),
@@ -123,6 +24,7 @@ pub mod lexer {
                 current: ' ',
                 lines,
                 errors: Vec::new(),
+                glbl_env,
             }
         }
 
@@ -132,29 +34,15 @@ pub mod lexer {
 
         // Throws an error with error.rs file
         // Exits the process
-        fn error(&mut self, kind: ErrorKind, offender: &str) {
+        fn error(&mut self, kind: Errors, offender: &str) {
             // Throw error
             let line_content = self.take_line(self.line);
             match line_content.1 {
                 Some(content) => {
-                    let err = DarcyError::new(
-                        &content,
-                        offender,
-                        &line_content.0,
-                        kind,
-                    );
-                    self.errors.push(err);
-
+                    todo!("Error handle");
                 },
                 None => {
-                    // TODO: Fix this!
-                    let err = DarcyError::new(
-                        "",
-                        offender,
-                        &line_content.0,
-                        kind
-                    );
-                    self.errors.push(err);
+                    todo!("Error handle");
                 }
             }
         }
@@ -193,7 +81,6 @@ pub mod lexer {
                 "elif" => Some(Token::new(TokenKind::Elif, "elif", &self.line)),
                 "else" => Some(Token::new(TokenKind::Else, "else", &self.line)),
                 "for" => Some(Token::new(TokenKind::For, "for", &self.line)),
-                "matrix" => Some(Token::new(TokenKind::Matrix, "matrix", &self.line)),
                 "const" => Some(Token::new(TokenKind::Const, "const", &self.line)),
                 "end" => Some(Token::new(TokenKind::End, "end", &self.line)),
 
@@ -272,7 +159,8 @@ pub mod lexer {
                     } else {
                         // Return word if character is not
                         if buffer.is_empty() {
-                            self.error(ErrorKind::IdentifierError, &buffer);
+                            //self.error(ErrorKind::IdentifierError, &buffer);
+                            todo!("Error handle");
                             return Some(String::new());
                         } else {
                             return Some(buffer);
@@ -318,7 +206,7 @@ pub mod lexer {
                         }
 
                         // Make token and return
-                        let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
+                        let token = Token::new(TokenKind::NumberLiteral(buffer), &buffer, &self.line);
                         return Some(token);
                     } else if let Some(t) = self.match_symbols() {
                         // Get exception for dot
@@ -333,7 +221,7 @@ pub mod lexer {
                         }
 
                         // Make token and return
-                        let token = Token::new(TokenKind::NumberLiteral, &buffer, &self.line);
+                        let token = Token::new(TokenKind::NumberLiteral(buffer), &buffer, &self.line);
                         return Some(token);
                     } else {
                         // Continue loop
@@ -362,7 +250,7 @@ pub mod lexer {
                 if let Some(c) = self.chars.peek() {
                     match *c {
                         '"' => {
-                            let token = Token::new(TokenKind::StringLiteral, &buffer, &self.line);
+                            let token = Token::new(TokenKind::StringLiteral(buffer), &buffer, &self.line);
                             
                             // Advance past the last quotation
                             match self.advance() {
@@ -404,7 +292,8 @@ pub mod lexer {
                         // If match then return token
                         MatchResult::Match(t) => return Some(t),
                         MatchResult::None => {
-                            self.error(ErrorKind::IdentifierError, &string);
+                            //self.error(ErrorKind::IdentifierError, &string);
+                            todo!("Error handle");
                             return Some(Token::new(TokenKind::Empty, "", &self.line));
                         },
                     }
@@ -460,6 +349,8 @@ pub mod lexer {
                         if *c == '=' {
                             self.advance();
                             Some(Token::new(TokenKind::MinusEqual, "-=", &self.line))
+                        } else if *c == '>' {
+                            Some(Token::new(TokenKind::RArrow, "->", &self.line))
                         } else {
                             Some(Token::new(TokenKind::Minus, "-", &self.line))
                         }
@@ -484,6 +375,8 @@ pub mod lexer {
                         if *c == '=' {
                             self.advance();
                             Some(Token::new(TokenKind::LessEqual, "<=", &self.line))
+                        } else if *c == '-' {
+                            Some(Token::new(TokenKind::LArrow, "<-", &self.line))
                         } else {
                             Some(Token::new(TokenKind::LessThan, "<", &self.line))
                         }
@@ -555,7 +448,7 @@ pub mod lexer {
         }
         
         // Scan each character of the file
-        pub fn scan(&mut self) -> (&Vec<Token>, &Vec<DarcyError>) {
+        pub fn scan(&mut self) -> (&Vec<Token>, &Vec<Errors>) {
             // Define variables
             let scanning = true;
 

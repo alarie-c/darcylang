@@ -1,16 +1,24 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process;
-//use error::error::{DarcyError, ErrorKind};
-use lexer::lexer::Lexer;
-use lexer::tokens::{Token, TokenKind};
-use error::{error_kind::ErrorKind, darcy_error::DarcyError};
+
+use lexer::*;
+use error::*;
+use ast::*;
+use scope::*;
+use tokens::*;
+
+use crate::lexer::lexer::Lexer;
+use crate::scope::scope::GlobalEnvironment;
+use crate::tokens::tokens::{Token, TokenKind};
 
 mod lexer;
 mod error;
 mod ast;
 mod scope;
+mod tokens;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -42,33 +50,25 @@ fn main() {
 
         println!("{:#?}", lines);
 
+        // Create the global environment
+        let mut glbl_env = GlobalEnvironment {
+            values: HashMap::new(),
+            children: Vec::new(),
+        };
+
         // Create lexer and iterator
         let iterator = buffer.chars().peekable();
-        let mut lexer = Lexer::new(iterator, lines);
-
+        let mut lexer = Lexer::new(iterator, lines, glbl_env);
 
         // Scan iterator for tokens
         let (tokens, errors) = lexer.scan();
-
-        // Clean tokens
-        let mut tokenized: Vec<&Token> = Vec::new();
-        for token in tokens {
-            if token.kind != TokenKind::Empty {
-                tokenized.push(token);
-            }
-        }
-
-        // Print errors
-        for err in errors {
-            err.report();
-        }
 
         // Match CLI args for flags
         if args.len() == 3 {
             match args[2].as_str() {
                 "--debug" => {
                     println!("debugging...");
-                    for token in tokenized {
+                    for token in tokens {
                         println!("{:#?}", token);
                     }
                 },

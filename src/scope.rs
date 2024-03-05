@@ -1,7 +1,7 @@
 pub mod values {
     use super::scope::Environment;
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     pub enum ValueKind {
         // Integers
         IntUnsigned(u32),
@@ -16,6 +16,7 @@ pub mod values {
 
     // Value struct stores the kind, data, and environment a value belongs to
     // Values can be linked to identifiers via HashMap
+    #[derive(Debug)]
     pub struct Value {
         kind: ValueKind,
         env: Environment,
@@ -37,10 +38,11 @@ pub mod scope {
     use super::values::Value;
     
     pub struct GlobalEnvironment {
-        values: HashMap<String, Value>,
-        children: Vec<Environment>,
+        pub values: HashMap<String, Value>,
+        pub children: Vec<Environment>,
     }
 
+    #[derive(Debug)]
     pub struct Environment {
         // Values takes keys in the form of Strings and matches them with Value structs
         values: HashMap<String, Value>,
